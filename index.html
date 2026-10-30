@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Return Deadline Tracker</title>
+<style>
+:root {
+  --bg: #f7f4ef;
+  --card: #ffffff;
+  --ink: #2c2a26;
+  --muted: #6b675f;
+  --accent: #3f6ea5;
+  --accent-soft: #e3ecf6;
+  --danger: #b23a3a;
+  --danger-soft: #f9e4e4;
+  --warn: #a86e1f;
+  --warn-soft: #faf0dc;
+  --good: #3a7d44;
+  --good-soft: #e2f0e4;
+  --line: #e2ddd4;
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+header {
+  padding: 24px 16px 8px;
+  text-align: center;
+}
+header h1 { margin: 0 0 4px; font-size: 1.7rem; }
+header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  padding: 12px 8px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  z-index: 5;
+}
+nav button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+nav button[aria-selected="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+main { max-width: 880px; margin: 0 auto; padding: 16px 16px 60px; }
+section[hidden] { display: none; }
+h2 { font-size: 1.25rem; margin: 20px 0 10px; }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 4px 0 14px; }
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.card h3 { margin: 0 0 2px; font-size: 1.05rem; }
+.card .store { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+.countdown {
+  font-size: 1.9rem;
+  font-weight: bold;
+  line-height: 1.1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin: 6px 0 8px;
+}
+.countdown small {
+  display: block;
+  font-weight: normal;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.cd-ok { background: var(--good-soft); color: var(--good); }
+.cd-soon { background: var(--warn-soft); color: var(--warn); }
+.cd-today { background: var(--warn-soft); color: var(--warn); }
+.cd-expired { background: var(--danger-soft); color: var(--danger); }
+.cd-none { background: var(--accent-soft); color: var(--accent); }
+.meta { font-size: 0.85rem; color: var(--muted); }
+.card .actions, .row .actions { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+button.small, a.small {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+button.danger { color: var(--danger); border-color: var(--danger-soft); background: var(--danger-soft); }
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+form.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 0 20px;
+  display: grid;
+  gap: 10px;
+}
+form.panel .grid2 {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+form.panel label { display: grid; gap: 2px; font-size: 0.88rem; color: var(--muted); }
+form.panel input, form.panel select, form.panel textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  width: 100%;
+}
+.form-buttons { display: flex; gap: 8px; }
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+.row .title { flex: 2 1 200px; min-width: 160px; }
+.row .title strong { display: block; }
+.row .title span { color: var(--muted); font-size: 0.85rem; }
+.row .right { flex: 1 1 150px; text-align: right; }
+.row .right .label { color: var(--muted); font-size: 0.8rem; display: block; }
+.row .right .date { font-size: 0.95rem; }
+.pill {
+  font-size: 0.78rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: bold;
+}
+.pill.done { background: var(--good-soft); color: var(--good); }
+.pill.over { background: var(--danger-soft); color: var(--danger); }
+.pill.soon { background: var(--warn-soft); color: var(--warn); }
+.month-group { margin-bottom: 22px; }
+.month-group h3 {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 4px;
+}
+.month-group .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 8px; }
+.empty {
+  color: var(--muted);
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+/* Receipt */
+#receipt-area {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+#receipt-print h2 { margin-top: 0; }
+.receipt-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.receipt-line .box {
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  margin-top: 3px;
+}
+.receipt-line .txt strong { display: block; }
+.receipt-line .txt span { color: var(--muted); font-size: 0.9rem; }
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  padding: 20px 10px 40px;
+}
+@media print {
+  header, nav, .toolbar, .no-print, form.panel, footer, main > section:not([id="receipt-tab"]) { display: none !important; }
+  body { background: #fff; }
+  [hidden] { display: none !important; }
+  #receipt-tab { display: block !important; } /* show only when printing from receipt */
+  #receipt-area { border: none; padding: 0; }
+  /* When printing the receipt, hide the other tabs' content */
+  #returns-tab, #library-tab, #loans-tab, #month-tab { display: none !important; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Return Deadline Tracker</h1>
+  <p>For the quiet dread of missed return windows. All data stays in this browser — nothing is synced or sent anywhere.</p>
+</header>
+
+<div role="tablist" aria-label="Sections">
+  <nav>
+    <button role="tab" aria-selected="true" data-tab="returns-tab">Returns</button>
+    <button role="tab" aria-selected="false" data-tab="library-tab">Library Books</button>
+    <button role="tab" aria-selected="false" data-tab="loans-tab">Borrowed &amp; Lent</button>
+    <button role="tab" aria-selected="false" data-tab="month-tab">Month Ahead</button>
+    <button role="tab" aria-selected="false" data-tab="receipt-tab">Receipt</button>
+    <button role="tab" aria-selected="false" data-tab="tools-tab">Export &amp; Tools</button>
+  </nav>
+</div>
+
+<main>
+
+  <!-- ===================== RETURNS ===================== -->
+  <section id="returns-tab" role="tabpanel" aria-label="Return window items">
+    <h2>Items you can still return</h2>
+    <p class="hint">Add something you bought, note how many days the store gives you, and the countdown does the worrying for you.</p>
+
+    <form id="return-form" class="panel">
+      <div class="grid2">
+        <label>What is it?
+          <input id="r-name" required placeholder="e.g. Wireless mouse">
+        </label>
+        <label>Store
+          <input id="r-store" placeholder="e.g. Target">
+        </label>
+        <label>Purchase date
+          <input id="r-date" type="date" required>
+        </label>
+        <label>Return window (days)
+          <input id="r-days" type="number" min="0" max="3650" required placeholder="e.g. 30">
+        </label>
+        <label>Price (optional)
+          <input id="r-price" type="number" step="0.01" min="0" placeholder="e.g. 49.99">
+        </label>
+      </div>
+      <label>Notes (condition, reason, anything)
+        <textarea id="r-notes" rows="2" placeholder="e.g. box unopened"></textarea>
+      </label>
+      <div class="form-buttons">
+        <button type="submit" class="primary small">Add item</button>
+        <button type="button" class="small" id="r-clear">Clear form</button>
+      </div>
+    </form>
+
+    <div class="toolbar no-print">
+      <button class="small" id="r-sort">Sort: soonest first</button>
+    </div>
+
+    <div id="r-list" class="card-grid"></div>
+  </section>
+
+  <!-- ===================== LIBRARY ===================== -->
+  <section id="library-tab" hidden role="tabpanel" aria-label="Library book due dates">
+    <h2>Library books</h2>
+    <p class="hint">Everything you checked out, with the date it has to go back.</p>
+
+    <form id="library-form" class="panel">
+      <div class="grid2">
+        <label>Title
+          <input id="l-title" required placeholder="e.g. The Overstory">
+        </label>
+        <label>Library or branch
+          <input id="l-lib" placeholder="e.g. County Library — Main St">
+        </label>
+        <label>Due date
+          <input id="l-due" type="date" required>
+        </label>
+      </div>
+      <div class="form-buttons">
+        <button type="submit" class="primary small">Add book</button>
+      </div>
+    </form>
+
+    <div class="toolbar no-print">
+      <button class="small" id="l-sort">Sort: soonest first</button>
+    </div>
+
+    <div id="l-list"></div>
+  </section>
+
+  <!-- ===================== BORROWED & LENT ===================== -->
+  <section id="loans-tab" hidden role="tabpanel" aria-label="Borrowed and lent items">
+    <h2>Borrowed from &amp; lent to people</h2>
+    <p class="hint">That book you borrowed from Sam. The ladder you lent to the neighbor. No more forgetting whose stuff it is.</p>
+
+    <form id="loan-form" class="panel">
+      <div class="grid2">
+        <label>Direction
+          <select id="o-dir">
+            <option value="borrowed">I borrowed it from someone</option>
+            <option value="lent">I lent it to someone</option>
+          </select>
+        </label>
+        <label>Item
+          <input id="o-item" required placeholder="e.g. Drill press">
+        </label>
+        <label>Person
+          <input id="o-person" required placeholder="e.g. Sam">
+        </label>
+        <label>Date of the loan
+          <input id="o-date" type="date">
+        </label>
+        <label>Expected back (optional)
+          <input id="o-back" type="date">
+        </label>
+      </div>
+      <div class="form-buttons">
+        <button type="submit" class="primary small">Add loan</button>
+      </div>
+    </form>
+
+    <div id="o-list-borrowed"></div>
+    <div id="o-list-lent"></div>
+  </section>
+
+  <!-- ===================== MONTH AHEAD ===================== -->
+  <section id="month-tab" hidden role="tabpanel" aria-label="Month ahead nudge view">
+    <h2>Month ahead</h2>
+    <p class="hint">Every deadline from today through the next two months, grouped so you can see what&rsquo;s coming without hunting.</p>
+    <div id="m-list"></div>
+  </section>
+
+  <!-- ===================== RECEIPT ===================== -->
+  <section id="receipt-tab" hidden role="tabpanel" aria-label="Printable return receipt checklist">
+    <h2>Printable return receipt checklist</h2>
+    <p class="hint">Pick the items you&rsquo;re taking back, then print (or save as PDF) and tuck it in the bag with the receipts.</p>
+
+    <div class="toolbar no-print">
+      <button class="small" id="rc-toggle">Select / deselect all</button>
+      <button class="small primary" id="rc-print">Print checklist</button>
+    </div>
+
+    <div id="receipt-area">
+      <div id="receipt-print"></div>
+    </div>
+  </section>
+
+  <!-- ===================== TOOLS ===================== -->
+  <section id="tools-tab" hidden role="tabpanel" aria-label="Export and tools">
+    <h2>Export &amp; tools</h2>
+    <p class="hint">Your data lives only in this browser&rsquo;s local storage. Export it now and then if you ever switch devices.</p>
+
+    <div class="toolbar">
+      <button class="small primary" id="x-returns">Export returns CSV</button>
+      <button class="small primary" id="x-library">Export library CSV</button>
+      <button class="small primary" id="x-loans">Export loans CSV</button>
+      <button class="small primary" id="x-all">Export everything CSV</button>
+    </div>
+    <div class="toolbar no-print">
+      <button class="small" id="t-seed">Load sample data</button>
+      <button class="small danger" id="t-wipe">Erase all data</button>
+    </div>
+    <p class="meta" id="t-info"></p>
+  </section>
+
+</main>
+
+<footer>
+  Return Deadline Tracker &middot; a local-first life-admin helper<br>
+  Copyright (c) 2026 Asdale Dynamics, LLC &middot; MIT licensed &middot; no tracking, no sync, no accounts
+</footer>
+
+<script>
+/* ===================== COUNTDOWN CORE (pure functions, tested) =====================
+   COUNTDOWN-CORE-START */
+'use strict';
+var DAY_MS = 86400000;
+
+function parseDateStr(s) {
+  if (typeof s !== 'string') return null;
+  var m = /^\d{4}-\d{2}-\d{2}$/.exec(s.trim());
+  if (!m) return null;
+  var y = parseInt(m[0].slice(0, 4), 10);
+  var mo = parseInt(m[0].slice(5, 7), 10);
+  var d = parseInt(m[0].slice(8, 10), 10);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  var probe = new Date(Date.UTC(y, mo - 1, d));
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== mo - 1 || probe.getUTCDate() !== d) return null;
+  return probe;
+}
+
+function daysUntil(targetStr, todayStr) {
+  var target = parseDateStr(targetStr);
+  var today = parseDateStr(todayStr);
+  if (!target || !today) return null;
+  return Math.round((target.getTime() - today.getTime()) / DAY_MS);
+}
+
+function addDays(dateStr, n) {
+  var d = parseDateStr(dateStr);
+  if (!d) return null;
+  var t = new Date(d.getTime() + n * DAY_MS);
+  var y = t.getUTCFullYear(), m = t.getUTCMonth() + 1, day = t.getUTCDate();
+  function pad(x) { return (x < 10 ? '0' : '') + x; }
+  return y + '-' + pad(m) + '-' + pad(day);
+}
+
+function expiryDate(purchaseStr, policyDays) {
+  var pd = parseInt(policyDays, 10);
+  if (!parseDateStr(purchaseStr) || !isFinite(pd) || pd < 0) return null;
+  return addDays(purchaseStr, pd);
+}
+
+function statusFor(days) {
+  if (days === null || typeof days !== 'number') return 'none';
+  if (days < 0) return 'expired';
+  if (days === 0) return 'today';
+  if (days <= 7) return 'soon';
+  return 'ok';
+}
+
+function countdownLabel(days) {
+  var st = statusFor(days);
+  if (st === 'none') return { text: 'No date', detail: '', cls: 'cd-none' };
+  if (st === 'expired') return {
+    text: (days === -1 ? '1 day' : -days + ' days') + ' past window',
+    detail: 'The return window has closed. Still worth asking the store, sometimes they bend.',
+    cls: 'cd-expired'
+  };
+  if (st === 'today') return {
+    text: 'Last day today',
+    detail: 'This is it — take it back today or it counts as missed.',
+    cls: 'cd-today'
+  };
+  if (st === 'soon') return {
+    text: days + (days === 1 ? ' day' : ' days') + ' left',
+    detail: 'Coming up soon. Worth getting on this in the next couple of days.',
+    cls: 'cd-soon'
+  };
+  return {
+    text: days + ' days left',
+    detail: 'Plenty of runway. Relax.',
+    cls: 'cd-ok'
+  };
+}
+
+function fmtDateHuman(dateStr) {
+  var d = parseDateStr(dateStr);
+  if (!d) return dateStr || '';
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months[d.getUTCMonth()] + ' ' + d.getUTCDate() + ', ' + d.getUTCFullYear();
+}
+
+function monthKey(dateStr) {
+  return dateStr.slice(0, 7);
+}
+
+function monthName(dateStr) {
+  var d = parseDateStr(dateStr);
+  var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  if (!d) return dateStr;
+  return months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+}
+/* COUNTDOWN-CORE-END */
+/* ===================== END COUNTDOWN CORE ===================== */
+
+/* ===================== APP ===================== */
+(function () {
+  if (typeof document === 'undefined') return; // allow Node tests to eval core only
+
+  var KEY = 'return-deadline-tracker.v1';
+
+  function todayStr() {
+    var n = new Date();
+    function pad(x) { return (x < 10 ? '0' : '') + x; }
+    return n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate());
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return { returns: [], library: [], loans: [] };
+      var d = JSON.parse(raw);
+      return {
+        returns: Array.isArray(d.returns) ? d.returns : [],
+        library: Array.isArray(d.library) ? d.library : [],
+        loans: Array.isArray(d.loans) ? d.loans : []
+      };
+    } catch (e) {
+      return { returns: [], library: [], loans: [] };
+    }
+  }
+  function save(data) {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    catch (e) { alert('Could not save: storage may be full or blocked.'); }
+  }
+  var state = load();
+
+  var sortReturnsSoon = true, sortLibrarySoon = true;
+
+  function uid() {
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function $(id) { return document.getElementById(id); }
+
+  // ---------- Tabs ----------
+  var tabs = document.querySelectorAll('[role="tab"]');
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () {
+      tabs.forEach(function (o) {
+        o.setAttribute('aria-selected', o === t ? 'true' : 'false');
+        $('#' + o.dataset.tab).hidden = o !== t;
+      });
+      if (t.dataset.tab === 'month-tab') renderMonth();
+      if (t.dataset.tab === 'receipt-tab') renderReceipt();
+      if (t.dataset.tab === 'tools-tab') renderToolsInfo();
+    });
+  });
+
+  // ---------- Returns ----------
+  function enrichReturns() {
+    var today = todayStr();
+    return state.returns.map(function (r) {
+      var exp = expiryDate(r.purchaseDate, r.policyDays);
+      var du = exp ? daysUntil(exp, today) : null;
+      var lbl = countdownLabel(du);
+      return Object.assign({}, r, { expiry: exp, daysLeft: du, label: lbl });
+    });
+  }
+
+  function renderReturns() {
+    var list = enrichReturns();
+    list.sort(function (a, b) {
+      if (a.daysLeft === null && b.daysLeft === null) return 0;
+      if (a.daysLeft === null) return 1;
+      if (b.daysLeft === null) return -1;
+      return sortReturnsSoon ? a.daysLeft - b.daysLeft : b.daysLeft - a.daysLeft;
+    });
+    var html = list.map(function (r) {
+      var meta = [];
+      meta.push('Bought ' + esc(fmtDateHuman(r.purchaseDate)));
+      meta.push('Window: ' + esc(String(r.policyDays)) + ' days');
+      if (r.price) meta.push('$' + esc(String(r.price)));
+      return '<div class="card">' +
+        '<h3>' + esc(r.name) + '</h3>' +
+        (r.store ? '<div class="store">' + esc(r.store) + '</div>' : '<div class="store">&nbsp;</div>') +
+        '<div class="countdown ' + r.label.cls + '">' + esc(r.label.text) + '<small>ends ' + esc(fmtDateHuman(r.expiry) || 'unknown date') + '</small></div>' +
+        '<div class="meta">' + meta.join(' &middot; ') + (r.notes ? '<br>' + esc(r.notes) : '') + '</div>' +
+        '<div class="actions">' +
+        '<button class="small" data-act="r-del" data-id="' + esc(r.id) + '">Remove</button>' +
+        '<button class="small" data-act="r-receipt" data-id="' + esc(r.id) + '">Add to receipt</button>' +
+        '</div></div>';
+    }).join('');
+    $('r-list').innerHTML = html || '<div class="empty">Nothing tracked yet. Add something you bought and haven\u2019t decided about.</div>';
+  }
+
+  $('return-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('r-name').value.trim();
+    var date = $('r-date').value;
+    var days = $('r-days').value;
+    if (!name || !date || days === '') return;
+    state.returns.push({
+      id: uid(), name: name, store: $('r-store').value.trim(),
+      purchaseDate: date, policyDays: parseInt(days, 10),
+      price: $('r-price').value ? parseFloat($('r-price').value) : null,
+      notes: $('r-notes').value.trim()
+    });
+    save(state); renderReturns();
+    $('r-clear').click();
+  });
+  $('r-clear').addEventListener('click', function () {
+    $('r-name').value = ''; $('r-store').value = ''; $('r-date').value = '';
+    $('r-days').value = ''; $('r-price').value = ''; $('r-notes').value = '';
+  });
+  $('r-sort').addEventListener('click', function () {
+    sortReturnsSoon = !sortReturnsSoon;
+    this.textContent = sortReturnsSoon ? 'Sort: soonest first' : 'Sort: latest first';
+    renderReturns();
+  });
+
+  // ---------- Library ----------
+  function renderLibrary() {
+    var today = todayStr();
+    var list = state.library.slice().map(function (b) {
+      var du = daysUntil(b.dueDate, today);
+      return Object.assign({}, b, { daysLeft: du, label: countdownLabel(du) });
+    });
+    list.sort(function (a, b) {
+      if (a.returned !== b.returned) return a.returned ? 1 : -1;
+      if (a.daysLeft === null) return 1;
+      if (b.daysLeft === null) return -1;
+      return sortLibrarySoon ? a.daysLeft - b.daysLeft : b.daysLeft - a.daysLeft;
+    });
+    var html = list.map(function (b) {
+      var st = b.returned ? '<span class="pill done">returned</span>'
+        : b.label.cls === 'cd-expired' ? '<span class="pill over">overdue</span>'
+        : b.label.cls === 'cd-today' || b.label.cls === 'cd-soon' ? '<span class="pill soon">due soon</span>'
+        : '<span class="pill">checked out</span>';
+      return '<div class="row">' +
+        '<div class="title"><strong>' + esc(b.title) + (b.returned ? ' (returned)' : '') + '</strong>' +
+        '<span>' + esc(b.library || '') + '</span></div>' +
+        '<div class="right"><span class="label">due</span><span class="date">' + esc(fmtDateHuman(b.dueDate)) + '</span></div>' +
+        '<div class="right"><span class="label">countdown</span>' + esc(b.returned ? '—' : b.label.text) + '</div>' +
+        '<div class="right">' + st + '</div>' +
+        '<div class="actions">' +
+        '<button class="small" data-act="l-toggle" data-id="' + esc(b.id) + '">' + (b.returned ? 'Mark unreturned' : 'Mark returned') + '</button>' +
+        '<button class="small danger" data-act="l-del" data-id="' + esc(b.id) + '">Remove</button>' +
+        '</div></div>';
+    }).join('');
+    $('l-list').innerHTML = html || '<div class="empty">No books out. Nice.</div>';
+  }
+  $('library-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var t = $('l-title').value.trim();
+    var d = $('l-due').value;
+    if (!t || !d) return;
+    state.library.push({ id: uid(), title: t, library: $('l-lib').value.trim(), dueDate: d, returned: false });
+    save(state); renderLibrary();
+    $('l-title').value = ''; $('l-lib').value = ''; $('l-due').value = '';
+  });
+  $('l-sort').addEventListener('click', function () {
+    sortLibrarySoon = !sortLibrarySoon;
+    this.textContent = sortLibrarySoon ? 'Sort: soonest first' : 'Sort: latest first';
+    renderLibrary();
+  });
+
+  // ---------- Loans ----------
+  function renderLoans() {
+    var today = todayStr();
+    function loanRow(o) {
+      var du = o.expectedBack && !o.returned ? daysUntil(o.expectedBack, today) : null;
+      var line = '';
+      if (!o.returned && du !== null) {
+        if (du < 0) line = esc(-du + (du === -1 ? ' day overdue' : ' days overdue'));
+        else line = esc(du === 0 ? 'back today' : du + (du === 1 ? ' day' : ' days') + ' to go');
+      }
+      return '<div class="row">' +
+        '<div class="title"><strong>' + esc(o.item) + '</strong>' +
+        '<span>' + (o.dir === 'lent' ? 'lent to ' : 'borrowed from ') + esc(o.person) +
+        (o.loanDate ? ' on ' + esc(fmtDateHuman(o.loanDate)) : '') + '</span></div>' +
+        '<div class="right"><span class="label">expected back</span><span class="date">' +
+        esc(o.expectedBack ? fmtDateHuman(o.expectedBack) : '—') + '</span></div>' +
+        '<div class="right"><span class="label">status</span>' + (o.returned ? '<span class="pill done">returned</span>' : '<span class="pill' + (du !== null && du < 0 ? ' over' : '') + '">' + (line || 'in limbo') + '</span>') + '</div>' +
+        '<div class="actions">' +
+        '<button class="small" data-act="o-toggle" data-id="' + esc(o.id) + '">' + (o.returned ? 'Mark not returned' : 'Mark returned') + '</button>' +
+        '<button class="small danger" data-act="o-del" data-id="' + esc(o.id) + '">Remove</button>' +
+        '</div></div>';
+    }
+    var bo = state.loans.filter(function (o) { return o.dir === 'borrowed'; });
+    var le = state.loans.filter(function (o) { return o.dir === 'lent'; });
+    $('o-list-borrowed').innerHTML =
+      '<h2>Borrowed from others (' + bo.length + ')</h2>' +
+      (bo.map(loanRow).join('') || '<div class="empty">Nothing borrowed right now.</div>');
+    $('o-list-lent').innerHTML =
+      '<h2>Lent to others (' + le.length + ')</h2>' +
+      (le.map(loanRow).join('') || '<div class="empty">Nothing lent out right now.</div>');
+  }
+  $('loan-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var item = $('o-item').value.trim();
+    var person = $('o-person').value.trim();
+    if (!item || !person) return;
+    state.loans.push({
+      id: uid(), dir: $('o-dir').value, item: item, person: person,
+      loanDate: $('o-date').value || null,
+      expectedBack: $('o-back').value || null,
+      returned: false
+    });
+    save(state); renderLoans();
+    $('o-item').value = ''; $('o-person').value = ''; $('o-date').value = ''; $('o-back').value = '';
+  });
+
+  // ---------- Month ahead ----------
+  function renderMonth() {
+    var today = todayStr();
+    var start = today;
+    var end = addDays(today, 61);
+    var entries = [];
+    enrichReturns().forEach(function (r) {
+      if (r.expiry && r.daysLeft !== null && daysUntil(r.expiry, start) >= 0 && r.expiry <= end && !r.receiptDone)
+        entries.push({ kind: 'Return', name: r.name, where: r.store, date: r.expiry, daysLeft: r.daysLeft });
+    });
+    state.library.forEach(function (b) {
+      if (!b.returned && b.dueDate >= start && b.dueDate <= end) {
+        var du = daysUntil(b.dueDate, start);
+        entries.push({ kind: 'Library', name: b.title, where: b.library, date: b.dueDate, daysLeft: du });
+      }
+    });
+    state.loans.forEach(function (o) {
+      if (!o.returned && o.expectedBack && o.expectedBack >= start && o.expectedBack <= end) {
+        var tag = o.dir === 'lent' ? 'Lent item due back' : 'Borrowed item to return';
+        entries.push({ kind: tag, name: o.item, where: o.person, date: o.expectedBack, daysLeft: null });
+      }
+    });
+    entries.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+
+    var groups = {};
+    entries.forEach(function (e) { (groups[monthKey(e.date)] = groups[monthKey(e.date)] || []).push(e); });
+
+    var html = '';
+    for (var k in groups) {
+      html += '<div class="month-group"><h3>' + esc(monthName(groups[k][0].date)) + '</h3>' +
+        '<p class="sub">' + groups[k].length + (groups[k].length === 1 ? ' deadline' : ' deadlines') + '</p>';
+      groups[k].forEach(function (e) {
+        var st = e.daysLeft !== null ? countdownLabel(e.daysLeft) : null;
+        html += '<div class="row">' +
+          '<div class="title"><strong>' + esc(e.name) + '</strong><span>' + esc(e.kind) + (e.where ? ' &middot; ' + esc(e.where) : '') + '</span></div>' +
+          '<div class="right"><span class="label">date</span><span class="date">' + esc(fmtDateHuman(e.date)) + '</span></div>' +
+          '<div class="right"><span class="label">' + (st && st.cls === 'cd-expired' ? 'overdue' : 'nudge') + '</span>' + esc(st ? st.text : 'a good day to hand it back') + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+    $('m-list').innerHTML = html || '<div class="empty">Nothing due in the next two months. Enjoy the quiet.</div>';
+  }
+
+  // ---------- Receipt ----------
+  var receiptSel = {};
+  function renderReceipt() {
+    var list = state.returns.filter(function (r) { return r.receiptDone !== true; });
+    var picked = list.filter(function (r) { return receiptSel[r.id]; });
+    function li(r) {
+      var ck = receiptSel[r.id] ? 'checked' : '';
+      return '<label class="receipt-line"><input type="checkbox" class="rc-ck no-print" data-id="' + esc(r.id) + '" ' + ck + '>' +
+        '<div class="txt"><strong>☐ ' + esc(r.name) + '</strong>' +
+        '<span>' + esc(r.store || '') + (r.store ? ' · ' : '') + 'bought ' + esc(fmtDateHuman(r.purchaseDate)) + ' — return by ' + esc(fmtDateHuman(expiryDate(r.purchaseDate, r.policyDays)) || '?') +
+        (r.price ? ' · $' + esc(String(r.price)) : '') + '</span></div></label>';
+    }
+    $('receipt-print').innerHTML =
+      '<h2>Return Receipt Checklist</h2>' +
+      '<p style="color:#6b675f;margin-top:0">Date on the trip: _________________</p>' +
+      (list.map(li).join('') || '<p><em>No open return items to check off. All clear.</em></p>') +
+      (picked.length ? '<p><strong>Taking back ' + picked.length + ' item' + (picked.length === 1 ? '' : 's') + '.</strong> Gather the receipts before you leave the house.</p>' : '');
+    document.querySelectorAll('.rc-ck').forEach(function (ck) {
+      ck.addEventListener('change', function () {
+        receiptSel[ck.dataset.id] = ck.checked;
+        renderReceipt();
+      });
+    });
+  }
+  $('rc-toggle').addEventListener('click', function () {
+    var list = state.returns.filter(function (r) { return r.receiptDone !== true; });
+    var any = list.some(function (r) { return receiptSel[r.id]; });
+    receiptSel = {};
+    if (!any) list.forEach(function (r) { receiptSel[r.id] = true; });
+    renderReceipt();
+  });
+  $('rc-print').addEventListener('click', function () {
+    var others = document.querySelectorAll('main > section');
+    others.forEach(function (s) { if (s.id !== 'receipt-tab') s.setAttribute('hidden', ''); });
+    window.print();
+  });
+
+  // ---------- CSV ----------
+  function csvCell(v) {
+    var s = v == null ? '' : String(v);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function toCSV(rows) {
+    return rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
+  }
+  function csvRowsReturns() {
+    var rows = [['name', 'store', 'purchase_date', 'policy_days', 'expiry_date', 'days_left', 'price', 'notes']];
+    enrichReturns().forEach(function (r) {
+      rows.push([r.name, r.store, r.purchaseDate, r.policyDays, r.expiry, r.daysLeft, r.price, r.notes]);
+    });
+    return rows;
+  }
+  function csvRowsLibrary() {
+    var rows = [['title', 'library', 'due_date', 'days_left', 'returned']];
+    var today = todayStr();
+    state.library.forEach(function (b) {
+      rows.push([b.title, b.library, b.dueDate, daysUntil(b.dueDate, today), b.returned ? 'yes' : 'no']);
+    });
+    return rows;
+  }
+  function csvRowsLoans() {
+    var rows = [['direction', 'item', 'person', 'loan_date', 'expected_back', 'returned']];
+    state.loans.forEach(function (o) {
+      rows.push([o.dir, o.item, o.person, o.loanDate || '', o.expectedBack || '', o.returned ? 'yes' : 'no']);
+    });
+    return rows;
+  }
+  function downloadCSV(filename, rows) {
+    var blob = new Blob([toCSV(rows)], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+  $('x-returns').addEventListener('click', function () { downloadCSV('returns.csv', csvRowsReturns()); });
+  $('x-library').addEventListener('click', function () { downloadCSV('library-books.csv', csvRowsLibrary()); });
+  $('x-loans').addEventListener('click', function () { downloadCSV('loans.csv', csvRowsLoans()); });
+  $('x-all').addEventListener('click', function () {
+    var merged = [['section', 'name', 'store_or_library_or_person', 'date_field', 'extra_a', 'extra_b', 'extra_c', 'notes']];
+    enrichReturns().forEach(function (r) {
+      merged.push(['return', r.name, r.store, r.purchaseDate, r.policyDays, r.expiry, r.price, r.notes]);
+    });
+    state.library.forEach(function (b) {
+      merged.push(['library', b.title, b.library, b.dueDate, b.returned ? 'returned' : 'out', '', '', '']);
+    });
+    state.loans.forEach(function (o) {
+      merged.push(['loan', o.item, o.person, o.loanDate || '', o.dir, o.expectedBack || '', o.returned ? 'returned' : 'open', '']);
+    });
+    downloadCSV('return-deadline-tracker-all.csv', merged);
+  });
+
+  // ---------- Tools ----------
+  $('t-wipe').addEventListener('click', function () {
+    if (!confirm('Erase all saved items, books, and loans from this browser? This cannot be undone.')) return;
+    state = { returns: [], library: [], loans: [] };
+    receiptSel = {};
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    renderAll();
+  });
+  $('t-seed').addEventListener('click', function () {
+    var hasData = state.returns.length || state.library.length || state.loans.length;
+    if (hasData && !confirm('Add sample data on top of your existing items? (Your current entries are kept.)')) return;
+    var today = new Date();
+    function iso(offset) {
+      var d = new Date(today.getTime() + offset * DAY_MS);
+      function pad(x) { return (x < 10 ? '0' : '') + x; }
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+    state.returns.push({
+      id: uid(), name: 'Wireless keyboard', store: 'Big Box Store',
+      purchaseDate: iso(-12), policyDays: 30, price: 42.5, notes: 'keys feel mushy'
+    });
+    state.library.push({ id: uid(), title: 'The Overstory', library: 'Main Branch', dueDate: iso(5), returned: false });
+    state.loans.push({ id: uid(), dir: 'lent', item: 'Ladder', person: 'Neighbor Sam', loanDate: iso(-20), expectedBack: iso(10), returned: false });
+    state.loans.push({ id: uid(), dir: 'borrowed', item: 'Sourdough cookbook', person: 'Aunt Jo', loanDate: iso(-40), expectedBack: iso(-2), returned: false });
+    save(state); renderAll();
+  });
+  function renderToolsInfo() {
+    $('t-info').textContent = 'Stored: ' + state.returns.length + ' return item(s), ' +
+      state.library.length + ' book(s), ' + state.loans.length + ' loan(s). Saved locally under key "' + KEY + '".';
+  }
+
+  // ---------- Global action clicks ----------
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var id = b.dataset.id, act = b.dataset.act;
+    if (act === 'r-del') { state.returns = state.returns.filter(function (r) { return r.id !== id; }); }
+    if (act === 'r-receipt') {
+      receiptSel[id] = true;
+      tabs.forEach(function (o) {
+        o.setAttribute('aria-selected', o.dataset.tab === 'receipt-tab' ? 'true' : 'false');
+        $('#' + o.dataset.tab).hidden = o.dataset.tab !== 'receipt-tab';
+      });
+      renderReceipt();
+      return;
+    }
+    if (act === 'l-toggle') { state.library = state.library.map(function (x) { return x.id === id ? Object.assign(x, { returned: !x.returned }) : x; }); }
+    if (act === 'o-toggle') { state.loans = state.loans.map(function (x) { return x.id === id ? Object.assign(x, { returned: !x.returned }) : x; }); }
+    if (act === 'l-del') { state.library = state.library.filter(function (x) { return x.id !== id; }); }
+    if (act === 'o-del') { state.loans = state.loans.filter(function (x) { return x.id !== id; }); }
+    save(state);
+    renderReturns(); renderLibrary(); renderLoans(); renderToolsInfo();
+  });
+
+  function renderAll() {
+    renderReturns(); renderLibrary(); renderLoans(); renderReceipt(); renderToolsInfo();
+  }
+
+  // Default date on forms
+  ['r-date', 'o-date'].forEach(function (id) { $(id).value = todayStr(); });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
